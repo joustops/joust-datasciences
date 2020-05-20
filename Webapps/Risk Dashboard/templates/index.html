@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+<script src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
+
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Regression Testing</title>
+    <link rel="shortcut icon" type="image/png" href="static/images/graphs.png">
+    <style> 
+    	body { 
+    		background-color: #F5F5F5; 
+    	} 
+    	h1 { 
+    		text-align: center; 
+    		color: black; 
+    	}
+    	h2 {
+    		text-align:left; 
+    		text-decoration: underline;
+    		color:black;
+    	}
+        h3 {
+            text-align:left;
+            color:black;
+        }
+    	table.dataframe, .dataframe th, .dataframe td {
+            border-collapse: collapse;
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        select {
+            float: right;
+            width: 10.5%;
+            margin-right: 2.5%;
+            font-size: 0.9em;
+        }
+    	.sumcont {
+    		width: 68%; 
+    		float: right; 
+    	}
+    	.sumdisc {
+    		width: 31.25%; 
+    		float: left; 
+    	}
+    	.sumcont2 {
+    		width: 68%; 
+    		float: left; 
+    	}
+        .sumdisc2 {
+            width: 31.25%; 
+            float: right; 
+        }
+        .container {
+            overflow: hidden; 
+        }
+        .centeredgraph {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 72%;
+        }
+        .rferank {
+            float: right;
+            width: 18%;
+            height: 640px;
+        }
+        .rightgraph {
+            float: right;
+            width: 60%;
+            height: 640px;
+            padding-right: 8%;
+            padding-left: 6%;
+        }
+        .mlgraph {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 72%;
+        }
+        .forcespace {
+            float: left;
+            padding-left: 9%;
+            padding-right: 0%;
+        }
+        .resulttable {
+            float: left;
+            width: 82%;
+        }
+        .forcespace2 {
+            float: left;
+            padding-left: 4%;
+            padding-right: 0%;
+        }
+        .finaltable {
+            float: left;
+            width: 92%;
+            height: 260px;
+        }
+	</style> 
+</head>
+<body>
+<div class="container">
+    <div class="row">
+    	<div class="col-md-6">
+    		<h1> Regression Testing </h1>
+		    <h2> Overview </h2>
+		    <div class="container">
+			    {% for table in sumtables %}
+			    	{{ table|safe }}
+			    {% endfor %}
+			</div>
+            <div class="details">
+                {% for var in howcleanedvars %}
+                    <p>{{ var }}</p>
+                {% endfor %}
+            </div>
+            <h2> Analysis </h2>
+            <select class="form-control" id ='rawHistchoice'>
+                {% for varname in allvars %}
+                    <option value="{{ varname }}" >{{ varname }}</option>
+                {% endfor %}
+            </select>
+            <div class="centeredgraph" id="RawHistogram">
+                <script>
+                    var graph = {{rawdistplot | safe}};
+                    var barlayout = {
+                      bargap: 0.05, 
+                      bargroupgap: 0.2, 
+                      title: "Raw Distribution", 
+                      xaxis: {title: "Value"},
+                      plot_bgcolor:"#F5F5F5",
+                      paper_bgcolor:"#F5F5F5",
+                      margin: {
+                        l: 50,
+                        r: 25,
+                        pad: 15
+                        }
+                    };
+                    Plotly.plot('RawHistogram',graph,barlayout);
+                </script>
+            </div>
+            <select class="form-control" id ='cleanHistchoice'>
+                {% for varname in cleanvars %}
+                    <option value="{{ varname }}" >{{ varname }}</option>
+                {% endfor %}
+            </select>
+            <div class="centeredgraph" id="CleanHistogram">
+                <script>
+                    var graph = {{cleandistplot | safe}};
+                    var barlayout = {
+                      bargap: 0.05, 
+                      bargroupgap: 0.2, 
+                      title: "Cleaned and Normalized Distribution", 
+                      xaxis: {title: "Value"},
+                      plot_bgcolor:"#F5F5F5",
+                      paper_bgcolor:"#F5F5F5",
+                      margin: {
+                        l: 50,
+                        r: 25,
+                        pad: 15
+                        }
+                    };
+                    Plotly.plot('CleanHistogram',graph,barlayout);
+                </script>
+            </div>
+            <br>
+            <div class="container">
+                <div class="rightgraph" id="CorrelationMatrix">
+                    <script>
+                        // format table
+                        var graph = {{heatmap | safe}};
+                        var corrlayout = {
+                          title: "Correlations", 
+                          plot_bgcolor:"#F5F5F5",
+                          paper_bgcolor:"#F5F5F5",
+                          xaxis: {
+                            showticklabels:false,
+                            ticks: ''
+                          },
+                          yaxis: {
+                            showticklabels:false,
+                            ticks: ''
+                          },
+                          margin: {
+                            t: 40,
+                            r: 0,
+                            b: 10,
+                            l: 0,
+                            pad: 15
+                            }
+                        };
+                        Plotly.plot('CorrelationMatrix',graph,corrlayout);
+                    </script>
+                </div>
+                {{ rfelist|safe }}
+            </div>
+            <h2> ML Models (Predicting {{target}})</h2>
+            <select class="form-control" id='LinRegchoice' name="Linear Regression">
+                <option value="Training">Training</option>
+                <option value="Testing">Testing</option>
+            </select>
+            <div class="mlgraph" id="LinRegresults">
+                <script>
+                    var graph = {{linreggraph | safe}};
+                    var lineslayout = {
+                      title: document.getElementById('LinRegchoice').name,
+                      plot_bgcolor:"#F5F5F5",
+                      paper_bgcolor:"#F5F5F5",
+                      margin: {
+                        l: 50,
+                        r: 25,
+                        pad: 15
+                        }
+                    };
+                    // Add all layout scripts to top
+                    Plotly.plot('LinRegresults',graph,lineslayout);
+                </script>
+            </div>
+            <div class="container">
+                <div class="forcespace">
+                    <p></p>
+                </div>
+                {{ linregtable|safe }}
+            </div>
+            <br>
+            <select class="form-control" id='KNNchoice' name="K-Nearest Neighbors">
+                <option value="Training">Training</option>
+                <option value="Testing">Testing</option>
+            </select>
+            <div class="mlgraph" id="KNNresults">
+                <script>
+                    var graph = {{knngraph | safe}};
+                    var lineslayout = {
+                      title: document.getElementById('KNNchoice').name,
+                      plot_bgcolor:"#F5F5F5",
+                      paper_bgcolor:"#F5F5F5",
+                      margin: {
+                        l: 50,
+                        r: 25,
+                        pad: 15
+                        }
+                    };
+                    // Add all layout scripts to top
+                    Plotly.plot('KNNresults',graph,lineslayout);
+                </script>
+            </div>
+            <div class="container">
+                <div class="forcespace">
+                    <p></p>
+                </div>
+                {{ knntable|safe }}
+            </div>
+            <br>
+            <select class="form-control" id='ExTreechoice' name="Extra Trees">
+                <option value="Training">Training</option>
+                <option value="Testing">Testing</option>
+            </select>
+            <div class="mlgraph" id="ExTreeresults">
+                <script>
+                    var graph = {{extreegraph | safe}};
+                    var lineslayout = {
+                      title: document.getElementById('ExTreechoice').name,
+                      plot_bgcolor:"#F5F5F5",
+                      paper_bgcolor:"#F5F5F5",
+                      margin: {
+                        l: 50,
+                        r: 25,
+                        pad: 15
+                        }
+                    };
+                    // Add all layout scripts to top
+                    Plotly.plot('ExTreeresults',graph,lineslayout);
+                </script>
+            </div>
+            <div class="container">
+                <div class="forcespace">
+                    <p></p>
+                </div>
+                {{ extreetable|safe }}
+            </div>
+            <br>
+            <select class="form-control" id='XGBoostchoice' name="XGBoost">
+                <option value="Training">Training</option>
+                <option value="Testing">Testing</option>
+            </select>
+            <div class="mlgraph" id="XGBoostresults">
+                <script>
+                    var graph = {{xgboostgraph | safe}};
+                    var lineslayout = {
+                      title: document.getElementById('XGBoostchoice').name,
+                      plot_bgcolor:"#F5F5F5",
+                      paper_bgcolor:"#F5F5F5",
+                      margin: {
+                        l: 50,
+                        r: 25,
+                        pad: 15
+                        }
+                    };
+                    // Add all layout scripts to top
+                    Plotly.plot('XGBoostresults',graph,lineslayout);
+                </script>
+            </div>
+            <div class="container">
+                <div class="forcespace">
+                    <p></p>
+                </div>
+                {{ xgboosttable|safe }}
+            </div>
+            <h2> Summary </h2>
+            <div class="container">
+                <div class="forcespace2">
+                    <p></p>
+                </div>
+                {{ finalsummary|safe }}
+            </div>
+		</div>
+    </div>
+    <script>
+        $('#rawHistchoice').on('change',function(){
+            var barlayout = {
+                bargap: 0.05, 
+                bargroupgap: 0.2, 
+                title: "Raw Distribution", 
+                xaxis: {title: "Value"},
+                plot_bgcolor:"#F5F5F5",
+                paper_bgcolor:"#F5F5F5",
+                margin: {
+                    l: 50,
+                    r: 25,
+                    pad: 15
+                    }
+                };
+            $.ajax({
+                url: "/fullhistchange",
+                type: "GET",
+                contentType: 'application/json;charset=UTF-8',
+                data: {
+                    'histchoice': document.getElementById('rawHistchoice').value
+                },
+                dataType:"json",
+                success: function (data) {
+                    Plotly.newPlot('RawHistogram', data, barlayout);
+                }
+            });
+        })
+        $('#cleanHistchoice').on('change',function(){
+            barlayout['title'] = "Cleaned and Normalized Distribution";
+            $.ajax({
+                url: "/cleanhistchange",
+                type: "GET",
+                contentType: 'application/json;charset=UTF-8',
+                data: {
+                    'histchoice': document.getElementById('cleanHistchoice').value
+                },
+                dataType:"json",
+                success: function (data) {
+                    Plotly.newPlot('CleanHistogram', data, barlayout);
+                }
+            });
+        })
+        $('#LinRegchoice').on('change',function(){
+            lineslayout['title'] = document.getElementById('LinRegchoice').name
+            $.ajax({
+                url: "/splitchange",
+                type: "GET",
+                contentType: 'application/json;charset=UTF-8',
+                data: {
+                    'splitchoice': document.getElementById('LinRegchoice').value,
+                    'algorithm': document.getElementById('LinRegchoice').name
+                },
+                dataType:"json",
+                success: function (data) {
+                    Plotly.newPlot('LinRegresults', data, lineslayout);
+                }
+            });
+        })
+        $('#KNNchoice').on('change',function(){
+            lineslayout['title'] = document.getElementById('KNNchoice').name
+            $.ajax({
+                url: "/splitchange",
+                type: "GET",
+                contentType: 'application/json;charset=UTF-8',
+                data: {
+                    'splitchoice': document.getElementById('KNNchoice').value,
+                    'algorithm': document.getElementById('KNNchoice').name
+                },
+                dataType:"json",
+                success: function (data) {
+                    Plotly.newPlot('KNNresults', data, lineslayout);
+                }
+            });
+        })
+        $('#ExTreechoice').on('change',function(){
+            lineslayout['title'] = document.getElementById('ExTreechoice').name
+            $.ajax({
+                url: "/splitchange",
+                type: "GET",
+                contentType: 'application/json;charset=UTF-8',
+                data: {
+                    'splitchoice': document.getElementById('ExTreechoice').value,
+                    'algorithm': document.getElementById('ExTreechoice').name
+                },
+                dataType:"json",
+                success: function (data) {
+                    Plotly.newPlot('ExTreeresults', data, lineslayout);
+                }
+            });
+        })
+        $('#XGBoostchoice').on('change',function(){
+            lineslayout['title'] = document.getElementById('XGBoostchoice').name
+            $.ajax({
+                url: "/splitchange",
+                type: "GET",
+                contentType: 'application/json;charset=UTF-8',
+                data: {
+                    'splitchoice': document.getElementById('XGBoostchoice').value,
+                    'algorithm': document.getElementById('XGBoostchoice').name
+                },
+                dataType:"json",
+                success: function (data) {
+                    Plotly.newPlot('XGBoostresults', data, lineslayout);
+                }
+            });
+        })
+    </script>
+</div>
+</body>
+</html>

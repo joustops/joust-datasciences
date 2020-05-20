@@ -36,8 +36,7 @@ driver.fullscreen_window()
 username = driver.find_element_by_id('form_username') #username
 password = driver.find_element_by_id('form_password') #password
 username.send_keys(os.environ.get('PROPAY_USER'))
-password.send_keys("PROPAY_PASS")
-
+password.send_keys(os.environ.get('PROPAY_PASS'))
 
 # In[44]:
 
